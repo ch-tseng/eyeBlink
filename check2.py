@@ -5,7 +5,7 @@ import time
 import dlib
 import cv2
 
-blinkThreshold = 0.15
+blinkThreshold = 0.16
 video_in = "/media/sf_ShareFolder/speech1.mp4"
 #video_in = "driving_car.avi"
 video_out = "output.avi"
@@ -85,12 +85,14 @@ while True:
     rects = detector(gray, 0)  #Detect faces use Dlib
     leftEyes = []
     rightEyes = []
+    imgFace = []
 
     print("Face detected: ",len(rects))
     for faceid, rect in enumerate(rects):
         #print("Detection {}: Left: {} Top: {} Right: {} Bottom: {}".format(
         #faceid, rect.left(), rect.top(), rect.right(), rect.bottom()))
-
+        areaFace = frame[rect.top():rect.bottom()-rect.top(), rect.right()-rect.left()]
+        imgFace.append(areaFace)
         shape = predictor(gray, rect)
         #print("Part 0: {}, Part 1: {} ...".format(shape.part(0), shape.part(1)))
 
@@ -105,21 +107,12 @@ while True:
         rightEAR = eye_aspect_ratio(rightEyes[0])
         blinkEAR = (leftEAR + rightEAR) / 2
 
-        blinkYN = "False"
         if(blinkEAR<=blinkThreshold):
             blinkCount += 1
-            blinkYN = "True"
-
-        line1 = "Left   Right   Blink"
-        line2_a = str(round(leftEAR,2))
-        line2_b = str(round(rightEAR,2))
-        line2_c = blinkYN
-
-        frameBG[0:height, bgDark_w:width+bgDark_w] = frame
-        frameBG = putText(frameBG, line1, 20, 140, (0,255,0), 2, 1.2)
-        frameBG = putText(frameBG, line2_a, 20, 200, (0,255,0), 2, 1.2)
-        frameBG = putText(frameBG, line2_b, 150, 200, (0,255,0), 2, 1.2)
-        frameBG = putText(frameBG, line2_c, 300, 200, (0,255,0), 2, 1.2)
+            #imgBlink = imutils.resize(frame, width=350)
+            borderColor = [255,255,255]
+            faceBlink = imgFace[0]
+            #faceBlink = cv2.copyMakeBorder(imgFace[0], 0, imgFace[0].shape[1], 0, imgFace[0].shape[1], cv2.BORDER_CONSTANT, None, borderColor)
 
         frame = drawEyeHull(leftEyes[0], rightEyes[0], frame)
         bbox_left = cv2.boundingRect(leftEyes[0])
@@ -128,8 +121,25 @@ while True:
         img_left = imutils.resize(bbox_2_img(frame, bbox_left), width = 150)
         img_right = imutils.resize(bbox_2_img(frame, bbox_right), width = 150)
 
+        frameBG[0:height, bgDark_w:width+bgDark_w] = frame
+
         frameBG[50:50+img_left.shape[0], 40:40+img_left.shape[1]] = img_left
         frameBG[50:50+img_right.shape[0], 220:220+img_right.shape[1]] = img_right
+        frameBG[frameBG.shape[0]-10-faceBlink.shape[0]:frameBG.shape[0]-10, 20:20+faceBlink.shape[1]] = faceBlink 
+
+        line2_a = str(round(leftEAR,2))
+        line2_b = str(round(rightEAR,2))
+        line2_c = str(blinkCount)
+
+        #frameBG[0:height, bgDark_w:width+bgDark_w] = frame
+        frameBG = putText(frameBG, "Left", 40, 150, (0,255,0), 2, 1.2)
+        frameBG = putText(frameBG, "Right", 220, 150, (0,255,0), 2, 1.2)
+        frameBG = putText(frameBG, "Blink", 400, 150, (0,255,0), 2, 1.2)
+
+        frameBG = putText(frameBG, line2_a, 40, 210, (0,255,0), 2, 1.2)
+        frameBG = putText(frameBG, line2_b, 220, 210, (0,255,0), 2, 1.2)
+        frameBG = putText(frameBG, line2_c, 400, 210, (0,255,0), 2, 1.2)
+
 
 
     cv2.imshow("FRAME", imutils.resize(frameBG, width=850))

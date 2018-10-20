@@ -6,7 +6,7 @@ import dlib
 import cv2
 
 blinkThreshold = 0.16
-video_in = "/media/sf_ShareFolder/speech1.mp4"
+video_in = "/media/sf_share/sister.m4v"
 #video_in = "driving_car.avi"
 video_out = "output.avi"
 
@@ -41,10 +41,10 @@ def getEyeShapes(landmarks):
     right = []
     left = []
 
-    for id in range(42,48):
+    for id in range(36,42):
         left.append((landmarks.part(id).x, landmarks.part(id).y))
 
-    for id in range(36,42):
+    for id in range(42,48):
         right.append((landmarks.part(id).x, landmarks.part(id).y))
 
     return np.array(left), np.array(right)
@@ -75,9 +75,8 @@ print(bgImage.shape)
 #bgImage[:,0.5*width:width] = (0,255,0)
 
 while True:
-    frameBG = bgImage.copy()
     (grabbed, frame) = camera.read()
-
+    frameBG = frame.copy()
     #frame = imutils.resize(frame, width=800)
     #frameBG = imutils.resize(frameBG, width=800)
 
@@ -89,10 +88,12 @@ while True:
 
     print("Face detected: ",len(rects))
     for faceid, rect in enumerate(rects):
-        #print("Detection {}: Left: {} Top: {} Right: {} Bottom: {}".format(
-        #faceid, rect.left(), rect.top(), rect.right(), rect.bottom()))
-        areaFace = frame[rect.top():rect.bottom()-rect.top(), rect.right()-rect.left()]
+        print("Detection {}: Left: {} Top: {} Right: {} Bottom: {}".format(
+        faceid, rect.left(), rect.top(), rect.right(), rect.bottom()))
+        areaFace = frameBG[rect.top():rect.top()+(rect.bottom()-rect.top()), 
+            rect.left()+(rect.right()-rect.left())]
         imgFace.append(areaFace)
+        #cv2.imshow("TEST",areaFace)
         shape = predictor(gray, rect)
         #print("Part 0: {}, Part 1: {} ...".format(shape.part(0), shape.part(1)))
 
@@ -110,9 +111,6 @@ while True:
         if(blinkEAR<=blinkThreshold):
             blinkCount += 1
             #imgBlink = imutils.resize(frame, width=350)
-            borderColor = [255,255,255]
-            faceBlink = imgFace[0]
-            #faceBlink = cv2.copyMakeBorder(imgFace[0], 0, imgFace[0].shape[1], 0, imgFace[0].shape[1], cv2.BORDER_CONSTANT, None, borderColor)
 
         frame = drawEyeHull(leftEyes[0], rightEyes[0], frame)
         bbox_left = cv2.boundingRect(leftEyes[0])
@@ -123,28 +121,34 @@ while True:
 
         frameBG[0:height, bgDark_w:width+bgDark_w] = frame
 
-        frameBG[50:50+img_left.shape[0], 40:40+img_left.shape[1]] = img_left
-        frameBG[50:50+img_right.shape[0], 220:220+img_right.shape[1]] = img_right
-        frameBG[frameBG.shape[0]-10-faceBlink.shape[0]:frameBG.shape[0]-10, 20:20+faceBlink.shape[1]] = faceBlink 
+        startX = width-500
+        startY = 90
+        cv2.rectangle(frameBG, (startX-30, startY-30), (startX+480, startY+200), (255,255,255), -1)
+
+        frameBG[startY:startY+img_left.shape[0], startX:startX+img_left.shape[1]] = img_left
+        frameBG[startY:startY+img_right.shape[0], startX+180:startX+180+img_right.shape[1]] = img_right
 
         line2_a = str(round(leftEAR,2))
         line2_b = str(round(rightEAR,2))
-        line2_c = str(blinkCount)
+        line2_c = str( round((leftEAR+rightEAR)/2,2) )
+        line2_d = str(blinkCount)
 
         #frameBG[0:height, bgDark_w:width+bgDark_w] = frame
-        frameBG = putText(frameBG, "Left", 40, 150, (0,255,0), 2, 1.2)
-        frameBG = putText(frameBG, "Right", 220, 150, (0,255,0), 2, 1.2)
-        frameBG = putText(frameBG, "Blink", 400, 150, (0,255,0), 2, 1.2)
+        frameBG = putText(frameBG, "Left", startX+30, startY+100, (0,0,0), 2, 1.2)
+        frameBG = putText(frameBG, "Right", startX+200, startY+100, (0,0,0), 2, 1.2)
+        frameBG = putText(frameBG, "Avg.", startX+360, startY+100, (0,0,0), 2, 1.2)
+        frameBG = putText(frameBG, "Blink", startX+345, startY-5, (0,0,255), 2, 0.8)
 
-        frameBG = putText(frameBG, line2_a, 40, 210, (0,255,0), 2, 1.2)
-        frameBG = putText(frameBG, line2_b, 220, 210, (0,255,0), 2, 1.2)
-        frameBG = putText(frameBG, line2_c, 400, 210, (0,255,0), 2, 1.2)
-
-
+        frameBG = putText(frameBG, line2_a, startX+30, startY+160, (0,0,0), 2, 1.2)
+        frameBG = putText(frameBG, line2_b, startX+200, startY+160, (0,0,0), 2, 1.2)
+        frameBG = putText(frameBG, line2_c, startX+360, startY+160, (0,0,0), 2, 1.2)
+        frameBG = putText(frameBG, line2_d, startX+400, startY+40, (0,0,255), 2, 1.5)
 
     cv2.imshow("FRAME", imutils.resize(frameBG, width=850))
     cv2.imwrite("/media/sf_ShareFolder/snapshot.png", frameBG)
+    out.write(frameBG)
+
     frameID  += 1
 
-    print("Frame: #", frameID )
+    #print("Frame: #", frameID )
     cv2.waitKey(1)

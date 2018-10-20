@@ -6,9 +6,9 @@ import dlib
 import cv2
 
 blinkThreshold = 0.16
-video_in = "/media/sf_share/sister.m4v"
+video_in = "/media/sf_share/speech2.mp4"
 #video_in = "driving_car.avi"
-video_out = "output.avi"
+video_out = "/media/sf_share/output.avi"
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
@@ -69,6 +69,7 @@ def bbox_2_img(img, bbox):
 frameID = 0
 bgDark_w = 0
 blinkCount = 0
+lastBlink = False
 bgImage = np.zeros((height,width+bgDark_w,3), np.uint8)
 bgImage[:,0:width+bgDark_w] = (0,0,0)      # (B, G, R)
 print(bgImage.shape)
@@ -109,8 +110,12 @@ while True:
         blinkEAR = (leftEAR + rightEAR) / 2
 
         if(blinkEAR<=blinkThreshold):
-            blinkCount += 1
-            #imgBlink = imutils.resize(frame, width=350)
+            if(lastBlink is False):
+                blinkCount += 1
+                lastBlink = True
+                #imgBlink = imutils.resize(frame, width=350)
+        else:
+            lastBlink = False
 
         frame = drawEyeHull(leftEyes[0], rightEyes[0], frame)
         bbox_left = cv2.boundingRect(leftEyes[0])
